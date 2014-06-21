@@ -1,7 +1,4 @@
 package placer.develop;
-/*
- * test
- */
 
 import android.app.Activity;
 import android.app.AlertDialog;
