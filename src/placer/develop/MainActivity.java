@@ -1,5 +1,9 @@
 package placer.develop;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -52,6 +56,8 @@ public class MainActivity extends Activity {
     public static Float axisPitch=(float) 0.0;
     public static Float axisRoll=(float) 0.0;
     public static Float axisAzimuth=(float) 0.0;
+    //Connecting DB
+    public Connection connection = null;
     
 	@Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,12 +82,27 @@ public class MainActivity extends Activity {
 		takePhotoButton.setClickable(true);
 		takePhotoButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				if (false == gpsEnableChecker()) {}
-				else {
-					//Here we do the Job!
+				/*if (false == gpsEnableChecker()) {}
+				else {*/
+					/*//Here we do the Job!
 					MainActivity.searchObject = new SearchObject(myLatitiude, myLongitude, myBearing, axisPitch, axisRoll, axisAzimuth);
-					new LoadingStart(MainActivity.this).execute();
-				}
+					new LoadingStart(MainActivity.this).execute();*/
+					try {
+						Log.e(TAG,"start");
+						Class.forName("org.postgresql.Driver");	
+						connection = DriverManager.getConnection("jdbc:postgresql://postgresql-db1.cp3lk1mrandp.us-west-2.rds.amazonaws.com:5432/dbname", "michael", "jankyur2");
+						Log.e(TAG,"end");
+					} 
+					catch (ClassNotFoundException e) {
+						return;
+					}
+					catch (SQLException e) {						 
+						return;
+					}
+					if (connection != null) {
+						Log.e(TAG,"1234567890");
+					}
+				//}
 	        }
 	    });
     }
