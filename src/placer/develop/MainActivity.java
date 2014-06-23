@@ -6,6 +6,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import placer.backend.searchobjectendpoint.Searchobjectendpoint;
+import placer.backend.searchobjectendpoint.model.ResultObject;
 import placer.backend.searchobjectendpoint.model.SearchObject;
 
 import com.google.api.client.extensions.android.http.AndroidHttp;
@@ -97,7 +98,8 @@ public class MainActivity extends Activity {
 					/*//Here we do the Job!
 					MainActivity.searchObject = new SearchObject(myLatitiude, myLongitude, myBearing, axisPitch, axisRoll, axisAzimuth);
 					new LoadingStart(MainActivity.this).execute();*/
-				new asyncTask().execute("");
+				//new asyncTask().execute("");
+				new asyncTask2().execute("");
 				//}
 	        }
 	    });
@@ -107,9 +109,13 @@ public class MainActivity extends Activity {
     	@Override
         protected String doInBackground(String... params) {
     		try {
+    			Log.e(TAG,"###1");
 				searchObject = new SearchObject();
+				Log.e(TAG,"###2");
 				searchObject.setAxisX((float) 20);searchObject.setAxisY((float) 30);searchObject.setAxisZ((float) 40);
-				searchObject.setBearing((float) 135);searchObject.setId("id1");searchObject.setLatitude((double) 45);searchObject.setLongitude((double) 5);
+				Log.e(TAG,"###3");
+				searchObject.setBearing((float) 135);searchObject.setId("id3");searchObject.setLatitude((double) 45);searchObject.setLongitude((double) 5);
+				Log.e(TAG,"###4");
 				userService.insertSearchObject(searchObject).execute();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -117,7 +123,21 @@ public class MainActivity extends Activity {
 			return "1";
         }   	
     }
-
+    
+    private static class asyncTask2 extends AsyncTask<String, Void, String> {    	
+    	@Override
+        protected String doInBackground(String... params) {
+    		try {
+				Log.e(TAG,"###5");
+				ResultObject ro = userService.dbTest(500).execute();
+				Log.e(TAG,"###RESULT: "+ro.getName());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}    		
+			return "1";
+        }   	
+    }
+    
     //METHODS FOR CAMERA
 	private void initCamera() {		
         mCameraBack = getCameraInstance(0);  											//Create an instance of Camera: 0->back, 1->front        
