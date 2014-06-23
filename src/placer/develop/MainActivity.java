@@ -1,8 +1,15 @@
 package placer.develop;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+import placer.backend.searchobjectendpoint.Searchobjectendpoint;
+import placer.backend.searchobjectendpoint.model.SearchObject;
+
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.json.gson.GsonFactory;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -18,6 +25,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -34,6 +42,8 @@ public class MainActivity extends Activity {
 	public static TextView txtLat, txtLon, txtBearing, txtPitch, txtRoll, txtAzimuth;
 	public Button takePhotoButton;
 	public static SearchObject searchObject;
+	private static Searchobjectendpoint.Builder userBuilder = new Searchobjectendpoint.Builder(AndroidHttp.newCompatibleTransport(), new GsonFactory(), null);
+	private static Searchobjectendpoint userService =  userBuilder.build();
     //FOR THE CAMERA
 	public Camera mCameraBack;
 	public CameraPreview mPreviewBack;
@@ -87,24 +97,25 @@ public class MainActivity extends Activity {
 					/*//Here we do the Job!
 					MainActivity.searchObject = new SearchObject(myLatitiude, myLongitude, myBearing, axisPitch, axisRoll, axisAzimuth);
 					new LoadingStart(MainActivity.this).execute();*/
-					try {
-						Log.e(TAG,"start");
-						Class.forName("org.postgresql.Driver");	
-						connection = DriverManager.getConnection("jdbc:postgresql://postgresql-db1.cp3lk1mrandp.us-west-2.rds.amazonaws.com:5432/dbname", "michael", "jankyur2");
-						Log.e(TAG,"end");
-					} 
-					catch (ClassNotFoundException e) {
-						return;
-					}
-					catch (SQLException e) {						 
-						return;
-					}
-					if (connection != null) {
-						Log.e(TAG,"1234567890");
-					}
+				new asyncTask().execute("");
 				//}
 	        }
 	    });
+    }
+	
+    private static class asyncTask extends AsyncTask<String, Void, String> {    	
+    	@Override
+        protected String doInBackground(String... params) {
+    		try {
+				searchObject = new SearchObject();
+				searchObject.setAxisX((float) 20);searchObject.setAxisY((float) 30);searchObject.setAxisZ((float) 40);
+				searchObject.setBearing((float) 135);searchObject.setId("id1");searchObject.setLatitude((double) 45);searchObject.setLongitude((double) 5);
+				userService.insertSearchObject(searchObject).execute();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}    		
+			return "1";
+        }   	
     }
 
     //METHODS FOR CAMERA
