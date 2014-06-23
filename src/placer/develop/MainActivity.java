@@ -1,17 +1,7 @@
 package placer.develop;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-import placer.backend.searchobjectendpoint.Searchobjectendpoint;
-import placer.backend.searchobjectendpoint.model.ResultObject;
-import placer.backend.searchobjectendpoint.model.SearchObject;
-
-import com.google.api.client.extensions.android.http.AndroidHttp;
-import com.google.api.client.json.gson.GsonFactory;
-
+import placer.general.ResultObject;
+import placer.general.SearchObject;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -26,9 +16,9 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.provider.Settings.Secure;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -38,43 +28,44 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 	
+	//General
 	public static final String TAG = null;
+	public static final int PORTRAIT = 90;
+	public static final int LANDSCAPE = 0;
 	public static ProgressDialog progressDialogSearch;
 	public static TextView txtLat, txtLon, txtBearing, txtPitch, txtRoll, txtAzimuth;
 	public Button takePhotoButton;
-	public static SearchObject searchObject;
-	private static Searchobjectendpoint.Builder userBuilder = new Searchobjectendpoint.Builder(AndroidHttp.newCompatibleTransport(), new GsonFactory(), null);
-	private static Searchobjectendpoint userService =  userBuilder.build();
+	public static SearchObject searchObject;  //Will be accessed from helper classes, therefore is static
+	public static ResultObject resultObject;  //Will be accessed from helper classes, therefore is static
+	public String id = "";
     //FOR THE CAMERA
-	public Camera mCameraBack;
-	public CameraPreview mPreviewBack;
+	public Camera cameraBack;
+	public CameraPreview previewBack;
     public static final int MEDIA_TYPE_IMAGE = 1;
-    public static int orientationAngle = 90;  //The default is portrait: 90-Portrait, 0-landscape. This is the way to know the screen orientation at any moment
+    public static int orientationAngle = PORTRAIT;  //The default is portrait: 90-Portrait, 0-landscape. This is the way to know the screen orientation at any moment
     //GPS+Sensors
     public static SensorManager sensorManager;
     public static Sensor accelerometerSensor, magneticFeildSensor;
     public LocationManager gpsSensor;
-    //Sensors
     float[] mGravity = null;
     float[] mGeomagnetic = null;
     float Rmat[] = new float[9];
     float Imat[] = new float[9];
     float rotationMatrixAfterCoordinateChanged[] = new float[9];
     float orientation[] = new float[3];    
-    public static Double myLatitiude=0.0;
-    public static Double myLongitude=0.0;
-    public static Float myBearing=(float) 0.0;
-    public static Float axisPitch=(float) 0.0;
-    public static Float axisRoll=(float) 0.0;
-    public static Float axisAzimuth=(float) 0.0;
-    //Connecting DB
-    public Connection connection = null;
+    public static double myLatitiude=0.0;
+    public static double myLongitude=0.0;
+    public static double myAltitude=0.0;
+    public static float axisPitch=0.0f;
+    public static float axisRoll=0.0f;
+    public static float axisAzimuth=0.0f;
     
 	@Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
+        //id = Secure.getString(this.getContentResolver(),Secure.ANDROID_ID);
         //Registering GPS
         gpsSensor = (LocationManager) getSystemService(LOCATION_SERVICE);
         gpsSensor.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, myLocationListener);
@@ -95,63 +86,36 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				/*if (false == gpsEnableChecker()) {}
 				else {*/
-					/*//Here we do the Job!
-					MainActivity.searchObject = new SearchObject(myLatitiude, myLongitude, myBearing, axisPitch, axisRoll, axisAzimuth);
-					new LoadingStart(MainActivity.this).execute();*/
-				//new asyncTask().execute("");
-				new asyncTask2().execute("");
+					//Here we do the Job after all parameters are ready!
+					//TODO: Call to Google elevation API
+					myAltitude = 100;  //For example
+					/*
+					 * Loading start responsibility:
+					 * 	1. Make calls to DB
+					 * 	2. Create & populate the result object of this  
+					 * 	Attenuation: all the variables are belong to this
+					 */
+					MainActivity.searchObject = new SearchObject(id, myLatitiude, myLongitude, myAltitude, axisPitch, axisRoll, axisAzimuth);
+					new LoadingStart(MainActivity.this).execute();
 				//}
 	        }
 	    });
     }
-	
-    private static class asyncTask extends AsyncTask<String, Void, String> {    	
-    	@Override
-        protected String doInBackground(String... params) {
-    		try {
-    			Log.e(TAG,"###1");
-				searchObject = new SearchObject();
-				Log.e(TAG,"###2");
-				searchObject.setAxisX((float) 20);searchObject.setAxisY((float) 30);searchObject.setAxisZ((float) 40);
-				Log.e(TAG,"###3");
-				searchObject.setBearing((float) 135);searchObject.setId("id3");searchObject.setLatitude((double) 45);searchObject.setLongitude((double) 5);
-				Log.e(TAG,"###4");
-				userService.insertSearchObject(searchObject).execute();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}    		
-			return "1";
-        }   	
-    }
-    
-    private static class asyncTask2 extends AsyncTask<String, Void, String> {    	
-    	@Override
-        protected String doInBackground(String... params) {
-    		try {
-				Log.e(TAG,"###5");
-				ResultObject ro = userService.dbTest(500).execute();
-				Log.e(TAG,"###RESULT: "+ro.getName());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}    		
-			return "1";
-        }   	
-    }
     
     //METHODS FOR CAMERA
 	private void initCamera() {		
-        mCameraBack = getCameraInstance(0);  											//Create an instance of Camera: 0->back, 1->front        
-        mPreviewBack = new CameraPreview(this, mCameraBack, orientationAngle);  							//Create our Preview view and set it as the content of our activity.
-        FrameLayout previewBack = (FrameLayout) findViewById(R.id.camera_preview_back);
-        previewBack.addView(mPreviewBack);
+        cameraBack = getCameraInstance(0);  											//Create an instance of Camera: 0->back, 1->front        
+        previewBack = new CameraPreview(this, cameraBack, orientationAngle);  			//Create our Preview view and set it as the content of our activity.
+        FrameLayout framePreviewBack = (FrameLayout) findViewById(R.id.camera_preview_back);
+        framePreviewBack.addView(previewBack);
 	}
 	
     private void releaseCamera() {
-        if (mCameraBack != null){
+        if (cameraBack != null){
             FrameLayout previewBack = (FrameLayout) findViewById(R.id.camera_preview_back);
-            previewBack.removeView(mPreviewBack);
-        	mCameraBack.release();        //release the camera for other applications
-        	mCameraBack = null;
+            previewBack.removeView(previewBack);
+        	cameraBack.release();        //release the camera for other applications
+        	cameraBack = null;
         }
     }
     
@@ -184,7 +148,6 @@ public class MainActivity extends Activity {
 	    	if (location.getLongitude() != 0.0 && location.getLatitude() != 0.0) {
 	    		myLatitiude = location.getLatitude();
 	    		myLongitude = location.getLongitude();
-	    		myBearing = location.getBearing();
 	    		updateLocationText();
 	    	}
 	    }
@@ -198,6 +161,7 @@ public class MainActivity extends Activity {
 	    	
 	    }
 	};
+	
 	//Accelerometer Listener
     SensorEventListener accelerometerListener = new SensorEventListener(){
         public void onAccuracyChanged(Sensor sensor, int accuracy) {}
@@ -208,6 +172,7 @@ public class MainActivity extends Activity {
             }
         }   
     };
+    
     //Magnetometer Listener
     SensorEventListener magnetometerListener = new SensorEventListener(){
         public void onAccuracyChanged(Sensor sensor, int accuracy) {}
@@ -218,6 +183,7 @@ public class MainActivity extends Activity {
             }
         }   
     };
+    
     //Helper methods for sensors
     private float restrictAngle(float tmpAngle) {
         while(tmpAngle>=180) tmpAngle-=360;
@@ -261,7 +227,6 @@ public class MainActivity extends Activity {
     	return true;
 	}
 
-
 	private void gpsMessage() {
 		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);	
 			alertDialogBuilder.setTitle("Weak GPS signal");
@@ -284,9 +249,8 @@ public class MainActivity extends Activity {
 	}
 	
 	private void updateLocationText() {
-		txtLat.setText("Lat: "+myLatitiude.toString());
-		txtLon.setText("Lon: "+myLongitude.toString());
-		txtBearing.setText("Bearing: "+myBearing.toString());
+		txtLat.setText("Lat: "+myLatitiude);
+		txtLon.setText("Lon: "+myLongitude);
 	}
 	
 	private void updateAttitudeText(float pitch, float roll, float azimuth) {

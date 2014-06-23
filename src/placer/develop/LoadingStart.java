@@ -1,16 +1,28 @@
 package placer.develop;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Vibrator;
+import android.util.Log;
 
 public class LoadingStart extends AsyncTask<Void, Integer, Void> {
 	
+	public static final String TAG = null;
 	private ProgressDialog progressDialogSearch;
 	private Context context;
+    //Connecting DB
+    public Connection connection = null;
+	public static Statement statement = null;
+	public static ResultSet resultSet = null;
 	
 	LoadingStart(Context cnt) {
 		this.context = cnt;
@@ -26,7 +38,18 @@ public class LoadingStart extends AsyncTask<Void, Integer, Void> {
     protected Void doInBackground(Void... params) {    
         synchronized (this) {										//Get the current thread's token  			 
         	try {  													//Do job and publish %
-       		 	//TODO: add real job
+    			Class.forName("org.postgresql.Driver");	
+    			connection = DriverManager.getConnection("jdbc:postgresql://postgresql-db1.cp3lk1mrandp.us-west-2.rds.amazonaws.com:5432/dbname", "michael", "jankyur2");
+    			if (connection != null) {
+    				statement = connection.createStatement();
+    				resultSet = statement.executeQuery("SELECT * FROM buildings WHERE gid = 500");
+    				while (resultSet.next()) {
+    				   Log.e(TAG,resultSet.getString(3)+", "+resultSet.getString(4));
+    				} 
+    				resultSet.close();
+    				statement.close();
+    				connection.close();
+    			}
         		publishProgress(25);            	 
        		 	this.wait(1000);
        		 	publishProgress(50); 
@@ -35,10 +58,10 @@ public class LoadingStart extends AsyncTask<Void, Integer, Void> {
        		 	this.wait(1000);	
        		 	publishProgress(100);
        		 	this.wait(500);
-       	 	} 
-        	catch (InterruptedException e) {
-       	 		e.printStackTrace();
-       	   	}
+       	 	}
+    		catch (ClassNotFoundException e) {Log.e(TAG,"###ClassNotFoundException");}
+    		catch (SQLException e) {}
+        	catch (InterruptedException e) {}
         }  
         return null;  
      }
