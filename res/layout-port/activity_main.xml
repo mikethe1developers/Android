@@ -48,14 +48,6 @@
            android:textColor="#FFF"
            android:text="" />
 
-       <TextView
-           android:id="@+id/textBearing"
-           android:layout_width="300dp"
-           android:layout_height="wrap_content"
-           android:textSize="24sp"
-           android:textColor="#FFF"
-           android:text="" />
-
 		<TextView
            android:id="@+id/textPitch"
            android:layout_width="300dp"
