@@ -106,28 +106,27 @@ public class MainActivity extends Activity {
 					 * 	2. Create & populate the result object of this  
 					 * 	Attenuation: all the variables are belong to this
 					 */
-					MainActivity.locationObject 	= new LocationObject(myLatitiude, myLongitude, myAltitude);
+					MainActivity.locationObject 	= new LocationObject(myLatitiude, myLongitude, myAltitude, 0);  //Here the AGL is 0 and the 1.5m is added automatically
 					MainActivity.orientationObject 	= new OrientationObject(axisPitch, axisRoll, axisAzimuth);
 					MainActivity.searchObject 		= new SearchObject(deviceId, myLatitiude, myLongitude, myAltitude, axisPitch, axisRoll, axisAzimuth);
 					new LoadingStart(MainActivity.this).execute();
-					Log.e(TAG,"###azimuth: "+MainActivity.axisAzimuth); Log.e(TAG,"###pitch: "+MainActivity.axisPitch); Log.e(TAG,"###roll: "+MainActivity.axisRoll);
 				//}
 	        }
 	    });
     }
     
     //METHODS FOR CAMERA
-	private void initCamera() {		
-        cameraBack = getCameraInstance(0);  											//Create an instance of Camera: 0->back, 1->front        
+	private void initCamera() {	
+        cameraBack = getCameraInstance(0);  											//Create an instance of Camera: 0->back, 1->front    
         previewBack = new CameraPreview(this, cameraBack, orientationAngle);  			//Create our Preview view and set it as the content of our activity.
         FrameLayout framePreviewBack = (FrameLayout) findViewById(R.id.camera_preview_back);
         framePreviewBack.addView(previewBack);
 	}
 	
     private void releaseCamera() {
-        if (cameraBack != null){
-            FrameLayout previewBack = (FrameLayout) findViewById(R.id.camera_preview_back);
-            previewBack.removeView(previewBack);
+        if (cameraBack != null && previewBack != null){
+            FrameLayout framePreviewBack = (FrameLayout) findViewById(R.id.camera_preview_back);
+            framePreviewBack.removeView(previewBack);
         	cameraBack.release();        //release the camera for other applications
         	cameraBack = null;
         }
@@ -218,9 +217,10 @@ public class MainActivity extends Activity {
     		SensorManager.getRotationMatrixFromVector(RmatVector, mRotation);
         	SensorManager.remapCoordinateSystem(RmatVector, SensorManager.AXIS_X, SensorManager.AXIS_Z, Rmat);  //Check sizes
         	SensorManager.getOrientation(Rmat, orientation);
-            MainActivity.axisAzimuth = HelperMethods.calculateFilteredAngle((float)Math.toDegrees((double)orientation[0]), MainActivity.axisAzimuth);  //azimuth
-            MainActivity.axisPitch = (-1)*HelperMethods.calculateFilteredAngle((float)Math.toDegrees((double)orientation[1]), MainActivity.axisPitch);  //pitch: need the (-1) to consistency with aviation terminology
-            MainActivity.axisRoll = HelperMethods.calculateFilteredAngle((float)Math.toDegrees((double)orientation[2]), MainActivity.axisRoll);  //-roll
+            MainActivity.axisAzimuth = (float)Math.toDegrees((double)orientation[0])/*HelperMethods.calculateFilteredAngle((float)Math.toDegrees((double)orientation[0]), MainActivity.axisAzimuth)*/;  //azimuth
+            if (MainActivity.axisAzimuth < 0) MainActivity.axisAzimuth = 360 + MainActivity.axisAzimuth;
+            MainActivity.axisPitch = (-1)*(float)Math.toDegrees((double)orientation[1])/*(-3)*HelperMethods.calculateFilteredAngle((float)Math.toDegrees((double)orientation[1]), MainActivity.axisPitch)*/;  //pitch: need the (-3) to consistency with aviation terminology: Both the sign & value (native pitch is up to 15 and we need up to 45...)
+            MainActivity.axisRoll = (float)Math.toDegrees((double)orientation[2])/*HelperMethods.calculateFilteredAngle((float)Math.toDegrees((double)orientation[2]), MainActivity.axisRoll)*/;  //-roll
         	updateAttitudeText(MainActivity.axisPitch, MainActivity.axisRoll, MainActivity.axisAzimuth);
 			if (azimuthList.size() > SENSOR_COLLECTION_LIMIT) {
 				azimuthList.remove();  //Removes the head
@@ -264,7 +264,7 @@ public class MainActivity extends Activity {
     }
       
     @Override
-    public void onDestroy(){
+    public void onDestroy() {
         super.onDestroy();
         gpsSensor.removeUpdates(myLocationListener);
         sensorManager.unregisterListener(rotationListener);
